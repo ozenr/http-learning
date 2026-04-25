@@ -13,24 +13,30 @@
 #define PORT "8080"
 
 int main(int argc, char **argv) {
+  // get message and host info of listener
+  char *host;
+  char *port;
   char *message;
-  if (argc < 2) {
-    message = "";
-  } else {
-    message = argv[1];
-  }
 
+  if (argc < 4) {
+    fprintf(stderr, "invalid args. usage: ./client [host] [port] [message]");
+    exit(1);
+  } 
+
+  host = argv[1];
+  port = argv[2];
+  message = argv[3];
+
+  // getaddrinfo and socket setup
   struct addrinfo hints, *res;
   int sockfd;
   int status;
 
-  // make sure struct is empty
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
 
-  // addrinfo and socket setup
-  if ((status = getaddrinfo("localhost", PORT, &hints, &res)) != 0) {
+  if ((status = getaddrinfo(host, port, &hints, &res)) != 0) {
     fprintf(stderr, "gai error %s\n", gai_strerror(status));
     exit(1);
   }
