@@ -7,8 +7,11 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #define PORT "8080"
+#define BACKLOG 10
+#define MAXBUFSIZE 100
 
 // PURPOSE: LEARN SOCKEt IMPLEMENTATION
 int main(void) {
@@ -32,7 +35,7 @@ int main(void) {
   //   host = argv[1];
   // }
 
-  if ((status = getaddrinfo(INADDR_ANY, PORT, &hints, &res)) != 0) {
+  if ((status = getaddrinfo(NULL, PORT, &hints, &res)) != 0) {
     fprintf(stderr, "gai error %s\n", gai_strerror(status));
     exit(1);
   }
@@ -59,16 +62,42 @@ int main(void) {
   if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) ==
       -1) {
     perror("socket error");
-    exit(2);
+    exit(1);
   }
 
   // ----- BIND To Machine -----
   if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
     perror("bind error");
-    exit(3);
+    exit(1);
   }
 
-  // ----- Listen and Accept -----
-  if (listen(sockfd, ))
-    freeaddrinfo(res);
+  // ----- Listen and Accept Incoming Connection-----
+  if (listen(sockfd, BACKLOG) == -1) {
+    perror("listen error");
+    exit(1);
+  }
+
+  struct sockaddr conn_addr;
+  struct sockaddr_storage conn_adds;
+  socklen_t conn_addrlen = sizeof(conn_adds);
+  int conn_fd;
+  if ( (conn_fd = accept(sockfd, &conn_addr, &conn_addrlen)) == -1) {
+    perror("accept error");
+    exit(1);
+  }
+
+  // Receive from Client
+  int bytes_sent;
+  char m_buf[MAXBUFSIZE];
+  if ( (bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
+    perror("recv error");
+    exit(1);
+  }
+
+  m_buf[bytes_sent] = '\0';
+  printf("client: received '%s'\n", m_buf);
+  close(sockfd);
+  freeaddrinfo(res);
+
+  return 0;
 }

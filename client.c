@@ -7,11 +7,19 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 // Macros
 #define PORT "8080"
 
 int main(int argc, char **argv) {
+  char *message;
+  if (argc < 2) {
+    message = "";
+  } else {
+    message = argv[1];
+  }
+
   struct addrinfo hints, *res;
   int sockfd;
   int status;
@@ -22,7 +30,7 @@ int main(int argc, char **argv) {
   hints.ai_socktype = SOCK_STREAM;
 
   // addrinfo and socket setup
-  if ((status = getaddrinfo(NULL, PORT, &hints, &res)) != 0) {
+  if ((status = getaddrinfo("localhost", PORT, &hints, &res)) != 0) {
     fprintf(stderr, "gai error %s\n", gai_strerror(status));
     exit(1);
   }
@@ -30,13 +38,26 @@ int main(int argc, char **argv) {
   if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) ==
       -1) {
     perror("socket error");
-    exit(2);
+    exit(1);
   }
 
   // Connect to Listener
   if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
     perror("connect error");
-    exit(3);
+    exit(1);
   }
+
+  // Echo to Listener
+  int msg_len = strlen(message);
+  int bytes_sent;
+
+  if ( (bytes_sent = send(sockfd, message, msg_len, 0)) == -1) {
+    perror("send error");
+    exit(1);
+  }
+
+  close(sockfd);
+  freeaddrinfo(res);
+
   return 0;
 }
