@@ -1,9 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -Werror -Wextra -std=c17
-all: main
 
-main: main.c
-	$(CC) $(CFLAGS) main.c -g -o run
+listener: listener.c
+	$(CC) $(CFLAGS) listener.c -g -o listener
+
+client: client.c
+	$(CC) $(CFLAGS) client.c -g -o client
 
 clean:
 	rm run 
