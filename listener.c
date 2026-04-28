@@ -38,23 +38,6 @@ int main(void) {
     exit(1);
   }
 
-  // // print ip addresses
-  // char ip[INET_ADDRSTRLEN];
-  // printf("HOST: %s\n", host);
-  // for (p = res; p->ai_next != NULL; p = p->ai_next) {
-  //   if (p->ai_family == AF_INET) {
-  //     struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-  //     inet_ntop(AF_INET, &(ipv4->sin_addr), ip, INET_ADDRSTRLEN);
-
-  //     printf("IPV4: %s\n", ip);
-  //   } else {
-  //     struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-  //     inet_ntop(AF_INET6, &(ipv6->sin6_addr), ip, INET6_ADDRSTRLEN);
-
-  //     printf("IPV6: %s\n", ip);
-  //   }
-  // }
-
   // get socket file descriptor
   int sockfd;
   if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) ==
@@ -69,33 +52,35 @@ int main(void) {
     exit(1);
   }
 
-  // ----- Listen and Accept Incoming Connection-----
-  if (listen(sockfd, BACKLOG) == -1) {
-    perror("listen error");
-    exit(1);
-  }
+  // ----- Listen and Accept Incoming Connections-----
+  while (1) {
+    if (listen(sockfd, BACKLOG) == -1) {
+      perror("listen error");
+      exit(1);
+    }
 
-  struct sockaddr conn_addr;
-  struct sockaddr_storage conn_adds;
-  socklen_t conn_addrlen = sizeof(conn_adds);
-  int conn_fd;
-  if ((conn_fd = accept(sockfd, &conn_addr, &conn_addrlen)) == -1) {
-    perror("accept error");
-    exit(1);
-  }
+    struct sockaddr conn_addr;
+    struct sockaddr_storage conn_adds;
+    socklen_t conn_addrlen = sizeof(conn_adds);
+    int conn_fd;
+    if ((conn_fd = accept(sockfd, &conn_addr, &conn_addrlen)) == -1) {
+      perror("accept error");
+      exit(1);
+    }
 
-  // Receive from Client
-  int bytes_sent;
-  char m_buf[MAXBUFSIZE];
-  if ((bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
-    perror("recv error");
-    exit(1);
-  }
+    // Receive from Client
+    int bytes_sent;
+    char m_buf[MAXBUFSIZE];
+    if ((bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
+      perror("recv error");
+      exit(1);
+    }
 
-  m_buf[bytes_sent] = '\0';
-  printf("client: received '%s'\n", m_buf);
+    m_buf[bytes_sent] = '\0';
+    printf("client: received '%s'\n", m_buf);
+  }
+  
   close(sockfd);
   freeaddrinfo(res);
-
   return 0;
 }
