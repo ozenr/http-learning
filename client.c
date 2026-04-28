@@ -19,9 +19,9 @@ int main(int argc, char **argv) {
   char *message;
 
   if (argc < 4) {
-    fprintf(stderr, "invalid args. usage: ./client [host] [port] [message]");
+    fprintf(stderr, "invalid args. usage: ./client [host] [port] [message]\n");
     exit(1);
-  } 
+  }
 
   host = argv[1];
   port = argv[2];
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   int msg_len = strlen(message);
   int bytes_sent;
 
-  if ( (bytes_sent = send(sockfd, message, msg_len, 0)) == -1) {
+  if ((bytes_sent = send(sockfd, message, msg_len, 0)) == -1) {
     perror("send error");
     exit(1);
   }

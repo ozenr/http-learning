@@ -27,15 +27,13 @@ int main(void) {
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  // // check if args were inputted
-  // char *host;
-  // if (argc < 2) {
-  //   host = NULL;
-  // } else {
-  //   host = argv[1];
-  // }
+  // check if args were inputted
+  char host[255];
+  const size_t HOSTNAME_MAX = 255;
+  gethostname(host, HOSTNAME_MAX);
+  printf("%s\n", host);
 
-  if ((status = getaddrinfo(NULL, PORT, &hints, &res)) != 0) {
+  if ((status = getaddrinfo(host, PORT, &hints, &res)) != 0) {
     fprintf(stderr, "gai error %s\n", gai_strerror(status));
     exit(1);
   }
@@ -81,7 +79,7 @@ int main(void) {
   struct sockaddr_storage conn_adds;
   socklen_t conn_addrlen = sizeof(conn_adds);
   int conn_fd;
-  if ( (conn_fd = accept(sockfd, &conn_addr, &conn_addrlen)) == -1) {
+  if ((conn_fd = accept(sockfd, &conn_addr, &conn_addrlen)) == -1) {
     perror("accept error");
     exit(1);
   }
@@ -89,7 +87,7 @@ int main(void) {
   // Receive from Client
   int bytes_sent;
   char m_buf[MAXBUFSIZE];
-  if ( (bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
+  if ((bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
     perror("recv error");
     exit(1);
   }
