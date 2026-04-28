@@ -11,7 +11,9 @@
 
 #define PORT "8080"
 #define BACKLOG 10
-#define MAXBUFSIZE 100
+#define MAXBUFSIZE 65535
+
+char *get_client_hostname(struct sockaddr_storage *addr, socklen_t addr_len);
 
 // PURPOSE: LEARN SOCKEt IMPLEMENTATION
 int main(void) {
@@ -53,34 +55,53 @@ int main(void) {
   }
 
   // ----- Listen and Accept Incoming Connections-----
-  while (1) {
-    if (listen(sockfd, BACKLOG) == -1) {
-      perror("listen error");
-      exit(1);
-    }
-
-    struct sockaddr conn_addr;
-    struct sockaddr_storage conn_adds;
-    socklen_t conn_addrlen = sizeof(conn_adds);
-    int conn_fd;
-    if ((conn_fd = accept(sockfd, &conn_addr, &conn_addrlen)) == -1) {
-      perror("accept error");
-      exit(1);
-    }
-
-    // Receive from Client
-    int bytes_sent;
-    char m_buf[MAXBUFSIZE];
-    if ((bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
-      perror("recv error");
-      exit(1);
-    }
-
-    m_buf[bytes_sent] = '\0';
-    printf("client: received '%s'\n", m_buf);
+  if (listen(sockfd, BACKLOG) == -1) {
+    perror("listen error");
+    exit(1);
   }
-  
+
+  // client settings
+  struct sockaddr_storage conn_addr;
+  socklen_t conn_addrlen = sizeof(conn_addr);
+  int conn_fd;
+  if ((conn_fd = accept(sockfd, (struct sockaddr *)&conn_addr,
+                        &conn_addrlen)) == -1) {
+    perror("accept error");
+    exit(1);
+  }
+
+  // get client machine name
+  char *peername = get_client_hostname(&conn_addr, conn_addrlen);
+
+  // Receive from Client
+  int bytes_sent;
+  char m_buf[MAXBUFSIZE];
+  if ((bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
+    perror("recv error");
+    exit(1);
+  }
+
+  m_buf[bytes_sent] = '\0';
+  printf("client %s: received '%s'\n", peername, m_buf);
+  free(peername);
+
   close(sockfd);
   freeaddrinfo(res);
   return 0;
+}
+
+// get_client_hostname(addr, addr_len) returns a heap-allocated string of the
+// client's hostname;
+//  otherwise returns NULL. heap-allocated string must be freed.
+char *get_client_hostname(struct sockaddr_storage *addr, socklen_t addr_len) {
+  const size_t BUF_SIZE = 1025;
+  char *hostname = malloc(BUF_SIZE);
+
+  if (getnameinfo((struct sockaddr *)addr, addr_len, hostname, BUF_SIZE, NULL,
+                  0, NI_NAMEREQD) != 0) {
+    free(hostname);
+    return NULL;
+  } else {
+    return hostname;
+  }
 }
