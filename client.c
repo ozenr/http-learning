@@ -27,10 +27,11 @@ int main(int argc, char **argv) {
   port = argv[2];
   message = argv[3];
 
-  // getaddrinfo and socket setup
-  struct addrinfo hints, *res;
+  // client info setup
+  struct addrinfo hints, *res, *p;
   int sockfd;
   int status;
+  int yes = 1;
 
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
@@ -41,29 +42,46 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) ==
+  for (p = res; p != NULL; p = p->ai_next) {
+    if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==
       -1) {
-    perror("socket error");
+      perror("socket error");
+      exit(1);
+    }
+
+    // release port immediately
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+      perror("setsockopt error");
+      exit(1);
+    }
+  }
+
+  freeaddrinfo(res);
+
+  if (p == NULL) {
+    fprintf(stderr, "getting addrinfo failed\n");
     exit(1);
   }
 
   // Connect to Listener
-  if (connect(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
+  if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
     perror("connect error");
     exit(1);
   }
 
-  // Echo to Listener
-  int msg_len = strlen(message);
-  int bytes_sent;
+  // TODO -> instead of using argv for inputs get user input
+  while(1) {
+    // Echo to Listener
+    int msg_len = strlen(message);
+    int bytes_sent;
 
-  if ((bytes_sent = send(sockfd, message, msg_len, 0)) == -1) {
-    perror("send error");
-    exit(1);
+    if ((bytes_sent = send(sockfd, message, msg_len, 0)) == -1) {
+      perror("send error");
+      exit(1);
+    } 
   }
 
   close(sockfd);
-  freeaddrinfo(res);
 
   return 0;
 }
