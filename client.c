@@ -11,27 +11,23 @@
 
 // Macros
 #define PORT "8080"
+#define MAXBUFSIZE 65535
 
 int main(int argc, char **argv) {
   // get message and host info of listener
   char *host;
   char *port;
-  char *message;
-
-  if (argc < 4) {
-    fprintf(stderr, "invalid args. usage: ./client [host] [port] [message]\n");
+  if (argc != 3) {
+    fprintf(stderr, "invalid args. usage: ./client [host] [port]\n");
     exit(1);
   }
-
   host = argv[1];
   port = argv[2];
-  message = argv[3];
 
   // client info setup
   struct addrinfo hints, *res, *p;
   int sockfd;
   int status;
-  int yes = 1;
 
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
@@ -46,42 +42,48 @@ int main(int argc, char **argv) {
     if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==
       -1) {
       perror("socket error");
-      exit(1);
+      continue;
     }
 
-    // release port immediately
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-      perror("setsockopt error");
-      exit(1);
+    // Connect to Listener
+    if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+      perror("connect error");
+      close(sockfd);
+      continue;
     }
+
+    break;
   }
-
-  freeaddrinfo(res);
 
   if (p == NULL) {
     fprintf(stderr, "getting addrinfo failed\n");
     exit(1);
   }
 
-  // Connect to Listener
-  if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-    perror("connect error");
-    exit(1);
-  }
+  // validate getaddrinfo 
+  freeaddrinfo(res);
 
-  // TODO -> instead of using argv for inputs get user input
+  // send loop
   while(1) {
     // Echo to Listener
-    int msg_len = strlen(message);
+    char buf[MAXBUFSIZE];
     int bytes_sent;
 
-    if ((bytes_sent = send(sockfd, message, msg_len, 0)) == -1) {
+    printf("client message: ");
+    if (fgets(buf, MAXBUFSIZE, stdin) == NULL) {
+      printf("Closing connection\n");
+      break;
+    } else if (strcmp(buf, "exit\n") == 0 || strcmp(buf, "q\n") == 0) {
+      printf("Closing connection\n");
+      break;
+    }
+
+    if ((bytes_sent = send(sockfd, buf, strlen(buf), 0)) == -1) {
       perror("send error");
-      exit(1);
+      break;
     } 
   }
 
   close(sockfd);
-
   return 0;
 }

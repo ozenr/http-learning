@@ -87,7 +87,8 @@ int main(void) {
 
   // accept and persist loop
   char m_buf[MAXBUFSIZE + 1];
-  while (1) {
+  int running = 1;
+  while (running) {
     conn_addrlen = sizeof(conn_addr);
     if ((conn_fd = accept(sockfd, (struct sockaddr *)&conn_addr,
                           &conn_addrlen)) == -1) {
@@ -106,19 +107,20 @@ int main(void) {
     // Receive from Client
     int bytes_sent;
     while (1) {
-      bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0);
+      bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE+1, 0);
       if (bytes_sent == -1) {
         perror("recv error");
         break;
       }
 
       else if (bytes_sent == 0) {
+        running = 0;
+        printf("Client disconnnected\n");
         break;
       }
 
       m_buf[bytes_sent] = '\0';
-      printf("client %s: received '%s'\n", peername, m_buf);
-
+      printf("client %s, received: %s", peername, m_buf);
     }
 
     // free client connection
