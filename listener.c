@@ -35,7 +35,7 @@ int main(void) {
   gethostname(host, HOSTNAME_MAX);
   printf("%s\n", host);
 
-  if ((status = getaddrinfo(host, PORT, &hints, &res)) != 0) {
+  if ((status = getaddrinfo(NULL, PORT, &hints, &res)) != 0) {
     fprintf(stderr, "gai error %s\n", gai_strerror(status));
     exit(1);
   }
@@ -60,33 +60,37 @@ int main(void) {
     exit(1);
   }
 
-  // client settings
-  struct sockaddr_storage conn_addr;
-  socklen_t conn_addrlen = sizeof(conn_addr);
-  int conn_fd;
-  if ((conn_fd = accept(sockfd, (struct sockaddr *)&conn_addr,
-                        &conn_addrlen)) == -1) {
-    perror("accept error");
-    exit(1);
-  }
-
-  // get client machine name
-  char *peername = get_client_hostname(&conn_addr, conn_addrlen);
-
-  // Receive from Client
-  int bytes_sent;
   char m_buf[MAXBUFSIZE];
-  if ((bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
-    perror("recv error");
-    exit(1);
-  }
+  while (strcmp(m_buf, "exit") != 0) {
+    // client settings
+    struct sockaddr_storage conn_addr;
+    socklen_t conn_addrlen = sizeof(conn_addr);
+    int conn_fd;
+    if ((conn_fd = accept(sockfd, (struct sockaddr *)&conn_addr,
+                          &conn_addrlen)) == -1) {
+      perror("accept error");
+      exit(1);
+    }
 
-  m_buf[bytes_sent] = '\0';
-  printf("client %s: received '%s'\n", peername, m_buf);
-  free(peername);
+    // get client machine name
+    char *peername = get_client_hostname(&conn_addr, conn_addrlen);
+
+    // Receive from Client
+    int bytes_sent;
+    if ((bytes_sent = recv(conn_fd, m_buf, MAXBUFSIZE, 0)) == -1) {
+      perror("recv error");
+      exit(1);
+    }
+
+    m_buf[bytes_sent] = '\0';
+    printf("client %s: received '%s'\n", peername, m_buf);
+    free(peername);
+  }
 
   close(sockfd);
   freeaddrinfo(res);
+
+  printf("exiting\n");
   return 0;
 }
 
